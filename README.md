@@ -16,10 +16,14 @@ Inversor de dos canales mutuamente excluyentes, controlado por un ESP32-S3-N16R8
 | `CAMBIOS.md` | Historial de decisiones con fecha. |
 | `AGENTS.md` | Reglas para Claude, Antigravity y el equipo. |
 | `hardware/easyeda/` | Proyecto EasyEDA Pro (`.epro2`). |
-| `hardware/diagramas/` | Diagrama de bloques. |
+| `hardware/diagramas/` | Diagrama de bloques (PNG y SVG). |
+| `hardware/esquematicos/` | Planos esquemáticos A3 y tabla de huellas de EasyEDA. |
 | `firmware/` | Código del ESP32-S3 (por escribir). |
-| `simulaciones/` | Scripts de MATLAB y Python. |
-| `documento/` | Anteproyecto y exportaciones del documento de grado. |
+| `simulaciones/matlab/` | Scripts de MATLAB de los anexos (figuras, simulación del Canal 1, tiempo muerto). |
+| `simulaciones/python/` | Scripts de Python equivalentes. |
+| `documento/` | Anteproyecto, documento de grado (PDF) y Capítulo 3 (`.docx`, versión con la Pico). |
+| `documento/avances/` | Avances en `.docx`: topología, cálculo de MOSFET, selección de driver, anexo IR2110. |
+| `documento/figuras/` | Figuras 1 a 30 del documento de grado. |
 | `datasheets/` | Hojas de datos de los componentes evaluados. |
 | `referencias/` | Notas de aplicación y guías de diseño de PCB. |
 | `docs/historico/` | Contexto anterior (versión con Raspberry Pi Pico). No usar como fuente de decisiones. |

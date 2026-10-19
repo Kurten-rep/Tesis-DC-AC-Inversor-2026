@@ -13,6 +13,7 @@ Formato de cada entrada: fecha, quién, qué cambió y qué reemplaza.
 - `CONTEXTO_PROYECTO.md` consolida el estado vigente. El contexto anterior (basado en la Pico)
   quedó en `docs/historico/CONTEXTO_PROYECTO_TESIS.md` solo como referencia.
 - Se agregó `AGENTS.md` con las reglas de trabajo compartidas entre Claude y Antigravity.
+- Se subieron los `.docx` de avances y del Capítulo 3, las figuras 1 a 30, los scripts de MATLAB y Python de los anexos, los planos esquemáticos A3 y la tabla de huellas de EasyEDA.
 
 ---
 

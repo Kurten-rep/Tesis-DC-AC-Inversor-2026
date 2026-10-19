@@ -23,7 +23,7 @@ Este repositorio lo editan dos asistentes y el equipo. Estas reglas evitan que u
 ## Archivos binarios
 - `hardware/easyeda/Archivo PCB.epro2` es binario: Git no puede fusionar cambios. Solo una persona
   o herramienta lo edita a la vez. Avisar en `CAMBIOS.md` al subir una versión nueva.
-- Los `.docx` del documento de grado viven en Google Drive. Aquí solo van exportaciones de respaldo.
+- El documento de grado vive en Google Drive (`Documento_Proyecto_Grado_Herrera_Marentes`). Los `.docx` de `documento/` son respaldos de avances anteriores; varios todavía describen la Pico o el elevador de 64 V. No usarlos como fuente de decisiones.
 
 ## Estilo de redacción del documento de grado
 Tiempo pasado, punto medio entre académico e informal, explicativo, cada párrafo autoconcluyente,

@@ -1,0 +1,16 @@
+Scripts de MATLAB de la tesis (inversor DC-AC de doble canal)
+
+Ejecutar generar_figuras_matlab.m. Los PNG (300 dpi) se guardan en la carpeta
+"Figuras Tesis", con los mismos nombres que usa el documento.
+Requiere MATLAB R2020a o posterior (tiledlayout, exportgraphics y yline).
+
+  generar_figuras_matlab.m          Ejecuta las cuatro figuras
+  fig09_ley_vf.m                    Figura 9. Ley V/f normalizada
+  fig21_simulacion_canal1.m         Figura 21. Simulación del Canal 1 (SPWM unipolar, LC, tiempo muerto, ma = 0,88)
+  fig23_canal2_vf_fsw.m             Figura 23. Ley V/f y frecuencia de conmutación del Canal 2
+  fig25_tiempo_muerto.m             Figura 25. Señales HO y LO con tiempo muerto de 800 ns
+  calculo_tiempo_muerto_perdidas.m  Tiempo muerto mínimo y pérdidas por transistor (Tablas 12 a 14)
+  sim_canal1.m                      Función de simulación del Canal 1 (V1 y THD)
+  tabla_canal1_fsw.m                V1 y THD del Canal 1 a 10, 20 y 40 kHz y ajuste de ma
+  coma.m                            Coma decimal en los ejes
+  carpeta_figuras.m                 Ruta de salida de las figuras
