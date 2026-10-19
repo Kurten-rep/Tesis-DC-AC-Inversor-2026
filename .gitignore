@@ -1,0 +1,28 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos temporales de Office y EasyEDA
+~$*
+*.tmp
+*.bak
+*.epro2.bak
+
+# Firmware (ESP-IDF / PlatformIO / Arduino)
+build/
+.pio/
+sdkconfig.old
+managed_components/
+
+# Python / MATLAB
+__pycache__/
+*.pyc
+.venv/
+*.asv
+slprj/
+*.slxc
+
+# Editores
+.vscode/
+.idea/
