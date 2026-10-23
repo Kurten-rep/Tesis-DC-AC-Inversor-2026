@@ -164,7 +164,11 @@ CONFIGURACIÓN, ARMADO, OPERACIÓN y FALLA (Figura 27). Valores por ajustar en `
 - Figuras: generadas en Python por Claude; los anexos se mantienen como scripts de MATLAB,
   siempre que los resultados coincidan.
 
-## 12. Pendientes abiertos
+## 12. Manual de usuario
+
+La materia prima del manual se va reuniendo en `docs/CONTEXTO_MANUAL_USUARIO.md`.
+
+## 13. Pendientes abiertos
 
 - [ ] Confirmar el modelo exacto de la placa ESP32-S3 (DevKitC-1 original o clon) para ubicar el LED RGB (GPIO38 o GPIO48).
 - [ ] Confirmar el sensor de CH1: `CAMBIOS.md` (17 oct.) registra ACS712-05B; otra nota registra ACS712-20A para los tres.

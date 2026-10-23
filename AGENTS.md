@@ -14,6 +14,10 @@ Este repositorio lo editan dos asistentes y el equipo. Estas reglas evitan que u
 - No incluir precios fuera del capítulo del BOM.
 - Unidades SI. Valores de componentes con su tolerancia.
 
+- Si el cambio afecta lo que ve o hace el usuario del equipo (pantallas, secuencias, conexiones,
+  mediciones, advertencias, calibraciones), actualizar también `docs/CONTEXTO_MANUAL_USUARIO.md`,
+  que es la base del futuro manual de usuario.
+
 ## Al terminar
 - Commits pequeños con mensaje en español que diga qué cambió, por ejemplo:
   `firmware: rampa de aceleración V/f para CH2`.

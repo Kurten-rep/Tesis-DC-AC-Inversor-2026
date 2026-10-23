@@ -8,6 +8,16 @@ Formato de cada entrada: fecha, quién, qué cambió y qué reemplaza.
 
 
 
+
+## 2026-10-23 · Claude · Contexto para el manual de usuario
+
+- Nuevo `docs/CONTEXTO_MANUAL_USUARIO.md`: descripción del equipo, advertencias, conexiones, pantallas y
+  avisos, secuencia de operación, fallas, mediciones con osciloscopio (regla de tierra, Canal 1 y Canal 2),
+  prueba de banco, programación y calibración del táctil, y pendientes.
+- `AGENTS.md`: regla para mantener ese archivo al día cuando cambie algo que vea o haga el usuario.
+
+---
+
 ## 2026-10-23 · Claude · Modo de banco del firmware
 
 - `firmware/main/banco.c`: con `idf.py -B build_banco -DMODO_BANCO=1` el firmware imprime cada 2 s el tiempo
