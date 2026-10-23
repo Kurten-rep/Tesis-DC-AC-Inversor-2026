@@ -7,6 +7,19 @@ Formato de cada entrada: fecha, quién, qué cambió y qué reemplaza.
 ---
 
 
+
+## 2026-10-23 · Claude · Modo de banco del firmware
+
+- `firmware/main/banco.c`: con `idf.py -B build_banco -DMODO_BANCO=1` el firmware imprime cada 2 s el tiempo
+  medio y máximo de la ISR, el periodo entre interrupciones, la carga de cada núcleo, las muestras/s del ADC
+  y el tiempo trama -> freno de la protección. GPIO 38 marca la duración de la ISR. La versión normal no
+  incluye nada de esto.
+- `firmware/PRUEBA_BANCO.md`: diez pruebas del MCU sin drivers, con montaje (trimmers en lugar de los
+  ACS712, escalón con pulsador), valores esperados y criterios.
+- `sdkconfig.defaults`: se activaron las estadísticas de tiempo de ejecución de FreeRTOS.
+
+---
+
 ## 2026-10-23 · Claude · Firmware del ESP32-S3 e interfaz de la TFT
 
 ### Firmware

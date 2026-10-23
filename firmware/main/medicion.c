@@ -18,6 +18,7 @@
 #include "config.h"
 #include "pines.h"
 #include "potencia.h"
+#include "banco.h"
 
 #include <math.h>
 #include <string.h>
@@ -59,6 +60,7 @@ static int sensor_de_canal_adc(int ch)
 static bool IRAM_ATTR cb_trama(adc_continuous_handle_t h, const adc_continuous_evt_data_t *ev, void *ctx)
 {
     BaseType_t despierta = pdFALSE;
+    banco_adc_trama_isr();
     vTaskNotifyGiveFromISR(s_tarea, &despierta);
     return despierta == pdTRUE;
 }
@@ -148,6 +150,7 @@ static void tarea_proteccion(void *arg)
                     continue;
                 }
                 int mv = s_mv[d->type2.data & 0x0FFF];
+                banco_adc_muestra(s);
 
                 if (calibrando) {
                     suma_cal[s] += mv;
@@ -164,12 +167,14 @@ static void tarea_proteccion(void *arg)
 
                 if (activo == CANAL_1 && s == SENSOR_CH1 && fabsf(i) > CH1_UMBRAL_A) {
                     potencia_disparo();
+                    banco_disparo();
                     s_cb_disparo(CAUSA_SOBRECORRIENTE_CH1, i, CH1_F1_HZ);
                     activo = CANAL_NINGUNO;
                 } else if (activo == CANAL_2 && (s == SENSOR_U || s == SENSOR_V)) {
                     if (fabsf(i) > CH2_UMBRAL_A) {
                         float f1 = potencia_f1_actual();
                         potencia_disparo();
+                        banco_disparo();
                         s_cb_disparo(s == SENSOR_U ? CAUSA_SOBRECORRIENTE_U : CAUSA_SOBRECORRIENTE_V, i, f1);
                         activo = CANAL_NINGUNO;
                     }
@@ -182,6 +187,7 @@ static void tarea_proteccion(void *arg)
                     if (activo == CANAL_2 && fabsf(iw) > CH2_UMBRAL_A) {
                         float f1 = potencia_f1_actual();
                         potencia_disparo();
+                        banco_disparo();
                         s_cb_disparo(CAUSA_SOBRECORRIENTE_W, iw, f1);
                         activo = CANAL_NINGUNO;
                     }

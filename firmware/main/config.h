@@ -81,6 +81,13 @@
 #define TACTIL_Z_UMBRAL         400
 #define TACTIL_DEPURAR          0
 
+/* ------------------------------------------------------ Modo de banco */
+/* 1: mediciones por consola para probar el MCU sin drivers (PRUEBA_BANCO.md).
+ * Se activa con  idf.py -B build_banco -DMODO_BANCO=1 build  */
+#ifndef MODO_BANCO
+#define MODO_BANCO              0
+#endif
+
 /* Nivel lógico de EN que habilita el canal. [VERIFICAR] con el esquemático
  * de la tarjeta de control: EN en alto lleva SD a nivel bajo. */
 #define EN_NIVEL_ACTIVO         1

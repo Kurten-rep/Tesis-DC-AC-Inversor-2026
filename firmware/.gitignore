@@ -4,3 +4,4 @@ sdkconfig.old
 managed_components/
 test/test_estado
 test/test_spwm
+build_banco/

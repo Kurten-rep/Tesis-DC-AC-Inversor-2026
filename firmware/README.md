@@ -17,6 +17,14 @@ La primera compilación descarga LVGL del registro de Espressif
 (`main/idf_component.yml`). El driver del ILI9341 va copiado en
 `components/esp_lcd_ili9341` (Apache-2.0).
 
+## Prueba de banco (MCU sin drivers)
+
+```
+idf.py -B build_banco -DMODO_BANCO=1 build flash monitor
+```
+
+Procedimiento, montaje y criterios en [PRUEBA_BANCO.md](PRUEBA_BANCO.md).
+
 ## Pruebas en el PC
 
 ```
@@ -49,6 +57,7 @@ con la versión actual:
 | `main/pantalla.c` | SPI2, ILI9341, XPT2046 y LVGL |
 | `main/ui.c` | Pantallas de cada estado |
 | `main/main.c` | Arranque y tarea de interfaz de 50 ms |
+| `main/banco.c` | Modo de banco: tiempos de la ISR, carga, ADC, reacción de la protección |
 
 ## Por verificar en el hardware
 

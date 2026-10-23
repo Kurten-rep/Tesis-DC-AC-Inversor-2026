@@ -26,6 +26,7 @@
 #include "medicion.h"
 #include "pantalla.h"
 #include "ui.h"
+#include "banco.h"
 
 static const char *TAG = "main";
 
@@ -164,5 +165,8 @@ void app_main(void)
 
     /* 5. Pantalla y LVGL */
     ESP_ERROR_CHECK(pantalla_iniciar(interfaz_lista));
+
+    /* 6. Solo en modo de banco: reporte por consola cada 2 s */
+    banco_iniciar();
     ESP_LOGI(TAG, "firmware listo");
 }

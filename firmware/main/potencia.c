@@ -25,6 +25,7 @@
 #include "pines.h"
 #include "config.h"
 #include "spwm.h"
+#include "banco.h"
 
 #include <string.h>
 #include "freertos/FreeRTOS.h"
@@ -118,23 +119,27 @@ canal_t potencia_canal_activo(void)
 
 static IRAM_ATTR bool isr_ch1(mcpwm_timer_handle_t t, const mcpwm_timer_event_data_t *ed, void *ctx)
 {
+    uint32_t t0 = banco_isr_entrada(G_CH1);
     spwm_ref_t r = s_ref[G_CH1][s_idx[G_CH1]];
     s_theta[G_CH1] += r.dtheta;
     int32_t s = spwm_seno_q15(s_theta[G_CH1]);
     /* SPWM unipolar: las dos ramas con moduladoras en contrafase */
     mcpwm_comparator_set_compare_value(s_g[G_CH1].cmp[0], spwm_cmp(&r, s));
     mcpwm_comparator_set_compare_value(s_g[G_CH1].cmp[1], spwm_cmp(&r, -s));
+    banco_isr_salida(G_CH1, t0);
     return false;
 }
 
 static IRAM_ATTR bool isr_ch2(mcpwm_timer_handle_t t, const mcpwm_timer_event_data_t *ed, void *ctx)
 {
+    uint32_t t0 = banco_isr_entrada(G_CH2);
     spwm_ref_t r = s_ref[G_CH2][s_idx[G_CH2]];
     uint32_t th = (s_theta[G_CH2] += r.dtheta);
     mcpwm_timer_set_period(t, 2u * r.pico);   /* se aplica en el TEZ siguiente */
     mcpwm_comparator_set_compare_value(s_g[G_CH2].cmp[0], spwm_cmp(&r, spwm_seno_q15(th)));
     mcpwm_comparator_set_compare_value(s_g[G_CH2].cmp[1], spwm_cmp(&r, spwm_seno_q15(th - TERCIO_VUELTA)));
     mcpwm_comparator_set_compare_value(s_g[G_CH2].cmp[2], spwm_cmp(&r, spwm_seno_q15(th + TERCIO_VUELTA)));
+    banco_isr_salida(G_CH2, t0);
     return false;
 }
 
@@ -380,6 +385,7 @@ bool potencia_arrancar(canal_t c, uint32_t f_ref_hz, uint32_t fsw_base_hz)
     if (mcpwm_timer_set_period(gr->timer, 2u * pico) != ESP_OK) {
         return false;
     }
+    banco_isr_reiniciar(g);
     if (mcpwm_timer_start_stop(gr->timer, MCPWM_TIMER_START_NO_STOP) != ESP_OK) {
         return false;
     }

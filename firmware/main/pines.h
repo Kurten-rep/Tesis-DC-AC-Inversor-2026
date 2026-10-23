@@ -46,3 +46,8 @@
 #define PIN_LIN_V        42
 #define PIN_HIN_W        47
 #define PIN_LIN_W        21
+
+/* Solo en modo de banco: queda en alto mientras corre la ISR de la SPWM.
+ * [VERIFICAR] usar el GPIO 38 o 48 que no tenga el LED RGB; si toca el LED,
+ * el LED parpadea sin consecuencias. */
+#define PIN_DEPURACION   38
