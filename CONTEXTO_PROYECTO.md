@@ -91,7 +91,7 @@ Pines descartados: 0, 3, 45, 46 (arranque), 19, 20 (USB nativo), 26 a 37 (flash 
 | 4 | I_V | ADC1_CH3 |
 | 5 | EN_CH1 | GPIO |
 | 6 | EN_CH2 | GPIO |
-| 7 | Libre (opción: paro de emergencia físico) | GPIO |
+| 7 | PARO (paro de emergencia NC, pull-up externo) | Entrada de falla de los dos MCPWM |
 | 8 | T_IRQ | GPIO (opcional) |
 | 9 | TFT_DC | GPIO |
 | 10 | TFT_CS | SPI2 IO_MUX |
@@ -116,6 +116,13 @@ TFT_RST al pin EN de la placa. TFT_BL a 3.3 V. SDO del TFT sin conectar.
 ### Interfaz de usuario
 
 Toda en la TFT ILI9341 de 2.8" con táctil XPT2046. Sin botones ni selectores físicos.
+Pantallas por estado: arranque, error de sensor, espera, configuración CH1/CH2, armado,
+operación CH1/CH2 y falla. Diseño en el lienzo "Interfaz TFT Inversor" de claude.ai.
+
+### Firmware
+
+ESP-IDF 5.3 + LVGL 9.2 en `firmware/`. Máquina de estados ARRANQUE, ERROR_SENSOR, ESPERA,
+CONFIGURACIÓN, ARMADO, OPERACIÓN y FALLA (Figura 27). Valores por ajustar en `firmware/main/config.h`.
 
 ## 7. Sensado y protección
 
@@ -168,4 +175,5 @@ Toda en la TFT ILI9341 de 2.8" con táctil XPT2046. Sin botones ni selectores f�
       (todavía muestra el elevador 64 V a 200 V y el RP2040), descripción del módulo de control y nota de sensado.
 - [ ] Corregir errores de suma en la matriz de selección del driver (3.65 / 3.60 / 4.00 con la primera ponderación).
 - [ ] Diseñar la PCB de control.
-- [ ] Escribir el firmware del ESP32-S3.
+- [x] Escribir el firmware del ESP32-S3 (`firmware/`, 23 oct. 2026). Quedan por verificar en el hardware:
+      polaridad de EN, orientación de la TFT y calibración del táctil, `CH2_MA0` y la pendiente de la rampa V/f.

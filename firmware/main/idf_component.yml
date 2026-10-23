@@ -1,0 +1,5 @@
+## Dependencias del registro de componentes de Espressif.
+## idf.py las descarga en managed_components/ la primera vez que se compila.
+dependencies:
+  idf: ">=5.3"
+  lvgl/lvgl: "~9.2.0"

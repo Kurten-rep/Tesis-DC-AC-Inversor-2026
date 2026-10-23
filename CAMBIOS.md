@@ -6,6 +6,28 @@ Formato de cada entrada: fecha, quién, qué cambió y qué reemplaza.
 
 ---
 
+
+## 2026-10-23 · Claude · Firmware del ESP32-S3 e interfaz de la TFT
+
+### Firmware
+- Primera versión en `firmware/` (ESP-IDF 5.3, LVGL 9.2). Compila para esp32s3 sin advertencias.
+- Máquina de estados de la Figura 27 en `main/estado.c`, separada del hardware y probada en el PC
+  (`make -C firmware/test`).
+- MCPWM: 80 MHz, modo ascendente/descendente, tiempo muerto de 64 cuentas (800 ns) en CH1 y 48 (600 ns)
+  en CH2. Freno OST por GPIO 7 y por software, salidas en bajo después del tiempo muerto.
+- SPWM en la ISR del evento TEZ, en el núcleo 1, con aritmética entera. Rampa V/f cada 1 ms.
+- Protección: ADC1 continuo a 60 kS/s (20 kS/s por sensor), tramas de 1 ms, umbrales de 2 A y 15 A.
+- Valores iniciales por ajustar: `CH2_MA0 = 0.05`, rampa de 100 Hz/s. Polaridad de EN supuesta activa en alto.
+
+### Interfaz
+- Nueve pantallas de 320 × 240 en el lienzo "Interfaz TFT Inversor". Fuentes Montserrat regeneradas con
+  tildes, ñ, ±, ≈ y −, porque las de LVGL solo traen ASCII.
+
+### Contexto
+- GPIO 7 queda como paro de emergencia (reemplaza "Libre (opción...)").
+
+---
+
 ## 2026-10-19 · Claude
 
 - Se creó el repositorio con la estructura `hardware/`, `firmware/`, `simulaciones/`,
