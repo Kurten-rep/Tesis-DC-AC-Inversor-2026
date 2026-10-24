@@ -9,6 +9,14 @@ Formato de cada entrada: fecha, quién, qué cambió y qué reemplaza.
 
 
 
+
+## 2026-10-23 · Claude · Resumen de la sesión del firmware
+
+- `docs/sesiones/2026-10-23_firmware.md`: outputs, decisiones, verificaciones y pendientes de la sesión, para
+  retomar el trabajo en una sesión nueva (configuración de VS Code y prueba de banco).
+
+---
+
 ## 2026-10-23 · Claude · Contexto para el manual de usuario
 
 - Nuevo `docs/CONTEXTO_MANUAL_USUARIO.md`: descripción del equipo, advertencias, conexiones, pantallas y
