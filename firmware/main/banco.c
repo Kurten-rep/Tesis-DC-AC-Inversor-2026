@@ -9,6 +9,10 @@
  *     en el último disparo por sobrecorriente.
  *   - Veredicto de cada criterio de PRUEBA_BANCO.md.
  * La ISR marca su duración en PIN_DEPURACION para verla en el osciloscopio.
+ *
+ * Todo el archivo está dentro de "#if MODO_BANCO": en el firmware normal no
+ * genera código. Las funciones banco_isr_entrada() y similares están en
+ * banco.h porque la ISR las llama en línea.
  */
 #include "banco.h"
 
@@ -27,31 +31,38 @@
 
 static const char *TAG = "banco";
 
-#define PERIODO_REPORTE_MS 2000u
+#define PERIODO_REPORTE_MS 2000u   /* cada cuánto se imprime el reporte */
 
 /* Criterios (ver PRUEBA_BANCO.md) */
 #define ISR_MAX_FRACCION   0.25f   /* tiempo máximo de la ISR / periodo */
-#define ADC_TOLERANCIA     0.05f
-#define REACCION_MAX_US    2000
+#define ADC_TOLERANCIA     0.05f   /* error admitido en las muestras por segundo (5 %) */
+#define REACCION_MAX_US    2000    /* tiempo máximo trama -> freno, en us */
 
+/* Contadores de la ISR. DRAM_ATTR los deja en RAM interna para que la ISR
+ * los acceda aunque la caché de la flash esté deshabilitada. */
 DRAM_ATTR banco_isr_t g_banco_isr[2];
 DRAM_ATTR uint32_t g_banco_t_ant[2];
 
-static volatile uint32_t s_muestras[SENSOR_NUM];
-static volatile int64_t s_t_trama_us;
-static volatile int64_t s_reaccion_us = -1;
-static volatile uint32_t s_disparos;
+static volatile uint32_t s_muestras[SENSOR_NUM];   /* muestras del ADC por sensor */
+static volatile int64_t s_t_trama_us;              /* instante de la última trama del DMA */
+static volatile int64_t s_reaccion_us = -1;        /* tiempo trama -> freno del último disparo */
+static volatile uint32_t s_disparos;               /* cantidad de disparos por sobrecorriente */
 
+/* La tarea de protección la llama por cada muestra procesada. */
 void banco_adc_muestra(int sensor)
 {
     s_muestras[sensor]++;
 }
 
+/* Se llama desde la ISR del ADC cuando llega una trama: anota el instante
+ * para medir después la reacción. */
 void IRAM_ATTR banco_adc_trama_isr(void)
 {
     s_t_trama_us = esp_timer_get_time();
 }
 
+/* Se llama justo después de aplicar el freno: la diferencia con la marca de
+ * la trama es el tiempo de reacción de la protección. */
 void banco_disparo(void)
 {
     s_reaccion_us = esp_timer_get_time() - s_t_trama_us;
@@ -73,17 +84,22 @@ static void inactividad(uint32_t idle[2])
     }
 }
 
+/* Texto del resultado de un criterio */
 static const char *veredicto(bool ok)
 {
     return ok ? "OK" : "NO CUMPLE";
 }
 
+/* Tarea de reporte: cada 2 s calcula las estadísticas del intervalo y las
+ * imprime con su veredicto. Corre en el núcleo 0 con prioridad 1. */
 static void tarea_banco(void *arg)
 {
+    /* Frecuencia de la CPU, para convertir ciclos a microsegundos */
     uint32_t f_cpu = 0;
     esp_clk_tree_src_get_freq_hz(SOC_MOD_CLK_CPU, ESP_CLK_TREE_SRC_FREQ_PRECISION_EXACT, &f_cpu);
     const float us_por_ciclo = 1e6f / (float)f_cpu;
 
+    /* Valores del reporte anterior, para trabajar con diferencias */
     uint32_t idle_ant[2];
     inactividad(idle_ant);
     uint32_t muestras_ant[SENSOR_NUM];
@@ -96,7 +112,7 @@ static void tarea_banco(void *arg)
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(PERIODO_REPORTE_MS));
         int64_t t = esp_timer_get_time();
-        float dt = (float)(t - t_ant) * 1e-6f;
+        float dt = (float)(t - t_ant) * 1e-6f;   /* duración real del intervalo, en s */
         t_ant = t;
 
         /* Copia y reinicio de los contadores de la ISR. La ISR corre en el
@@ -117,6 +133,7 @@ static void tarea_banco(void *arg)
         inactividad(idle);
         float carga[2];
         for (int c = 0; c < 2; c++) {
+            /* fracción del intervalo que el núcleo estuvo inactivo */
             float frac = (float)(idle[c] - idle_ant[c]) / (dt * 1e6f);
             carga[c] = 100.0f * (1.0f - frac);
             idle_ant[c] = idle[c];
@@ -126,16 +143,21 @@ static void tarea_banco(void *arg)
         ESP_LOGI(TAG, "Canal activo: %d   f1 = %.1f Hz   fsw = %.0f Hz   ma = %.3f",
                  (int)pe.canal, pe.f1_hz, pe.fsw_hz, pe.ma);
 
+        /* Estadísticas de la ISR del canal que está modulando: g = 0 para el
+         * Canal 1, 1 para el Canal 2, -1 si ninguno */
         bool ok_isr = true, ok_perdidos = true, ok_tasa = true;
         int g = (pe.canal == CANAL_1) ? 0 : (pe.canal == CANAL_2) ? 1 : -1;
         if (g >= 0 && isr[g].llamadas > 0) {
             banco_isr_t *b = &isr[g];
-            float tasa = b->llamadas / dt;
-            float t_med = (float)b->ciclos_suma / b->llamadas * us_por_ciclo;
-            float t_max = b->ciclos_max * us_por_ciclo;
+            float tasa = b->llamadas / dt;                                        /* llamadas por segundo */
+            float t_med = (float)b->ciclos_suma / b->llamadas * us_por_ciclo;     /* duración media, us */
+            float t_max = b->ciclos_max * us_por_ciclo;                           /* duración máxima, us */
             float periodo_us = 1e6f / pe.fsw_hz;
+            /* Criterio 1: la ISR no debe ocupar más del 25 % del periodo */
             ok_isr = t_max <= ISR_MAX_FRACCION * periodo_us;
+            /* Criterio 2: ningún intervalo entre llamadas supera 1,5 periodos (no se pierden periodos) */
             ok_perdidos = (b->periodo_max * us_por_ciclo) < 1.5f * periodo_us;
+            /* Criterio 3: la tasa coincide con fsw dentro de ±2 % */
             ok_tasa = tasa > 0.98f * pe.fsw_hz && tasa < 1.02f * pe.fsw_hz;
             if (!pe.rampa_completa) {
                 ESP_LOGI(TAG, "ISR: rampa en curso, fsw cambia: espere a que termine para el veredicto");
@@ -154,6 +176,8 @@ static void tarea_banco(void *arg)
 
         ESP_LOGI(TAG, "Carga de tareas: núcleo 0 %.1f %%, núcleo 1 %.1f %% (sin contar ISR)", carga[0], carga[1]);
 
+        /* Muestras por segundo de cada sensor; deben coincidir con
+         * ADC_FS_CANAL_HZ dentro de la tolerancia, sin tramas perdidas */
         bool ok_adc = true;
         char linea[96];
         int n = 0;
@@ -171,6 +195,7 @@ static void tarea_banco(void *arg)
                  md.offset_mv[0], md.offset_mv[1], md.offset_mv[2],
                  md.rms_a[0], md.rms_a[1], md.rms_a[2], md.rms_a[3]);
 
+        /* Tiempo de reacción de la protección, solo si hubo algún disparo */
         if (s_disparos > 0) {
             int64_t r = s_reaccion_us;
             ESP_LOGI(TAG, "Protección: %" PRIu32 " disparos, último: trama -> freno %" PRId64 " us %s",
@@ -182,6 +207,8 @@ static void tarea_banco(void *arg)
     }
 }
 
+/* Configura el pin de depuración como salida en bajo y lanza la tarea de
+ * reporte en el núcleo 0. */
 void banco_iniciar(void)
 {
     gpio_config_t io = {

@@ -53,7 +53,23 @@ int main(void)
 
     /* Error de sensor y reintento */
     ev(&sm, EV_CALIB_ERROR, 0, 10);
+#if !SENSORES_BLOQUEAN_INTERFAZ
+    /* Modo de pruebas: la interfaz sigue, pero nunca se habilitan drivers */
+    OK(sm.estado == EST_ESPERA && !sm.sensores_ok);
+    ev(&sm, EV_SELECCIONAR_CANAL, CANAL_1, 11);
+    ev(&sm, EV_INICIAR, 0, 12);
+    OK(sm.estado == EST_ARMADO);
+    sm_tick(&sm, 12 + ARMADO_ESPERA_MS + 1);
+    OK(sm.estado == EST_OPERACION && hw.n_arrancar == 1);
+    OK(hw.n_habilitar == 0 && !hw.en[1] && !hw.en[2]);
+    ev(&sm, EV_DETENER, 0, 600);
+    OK(sm.estado == EST_ESPERA);
+    hw.n_arrancar = 0;
+    sm_iniciar(&sm, &HW, 0);
+    sm.estado = EST_ERROR_SENSOR;   /* el resto de la prueba sigue igual */
+#else
     OK(sm.estado == EST_ERROR_SENSOR);
+#endif
     ev(&sm, EV_SELECCIONAR_CANAL, CANAL_1, 20);
     OK(sm.estado == EST_ERROR_SENSOR);       /* bloqueado */
     ev(&sm, EV_REINTENTAR, 0, 30);

@@ -10,6 +10,9 @@
  *
  * Los eventos llegan por una cola: de los botones, de la ISR del paro y de la
  * tarea de protección. Solo la tarea de interfaz toca la máquina de estados.
+ *
+ * Orden del archivo: fuentes de eventos, funciones de hardware que usa la
+ * máquina de estados, tarea de interfaz y, al final, app_main().
  */
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
@@ -28,12 +31,13 @@
 #include "ui.h"
 #include "banco.h"
 
-static const char *TAG = "main";
+static const char *TAG = "main";   /* etiqueta de los mensajes de log */
 
-static QueueHandle_t s_cola;
-static sm_t s_sm;
-static bool s_calib_pedida;
+static QueueHandle_t s_cola;       /* cola de eventos hacia la tarea de interfaz */
+static sm_t s_sm;                  /* única instancia de la máquina de estados */
+static bool s_calib_pedida;        /* true si ya se pidió la calibración en este ARRANQUE */
 
+/* Milisegundos desde el arranque. Se usa como reloj de la máquina de estados. */
 static uint32_t ahora_ms(void)
 {
     return (uint32_t)(esp_timer_get_time() / 1000);
@@ -41,32 +45,53 @@ static uint32_t ahora_ms(void)
 
 /* ------------------------------------------------ Fuentes de eventos */
 
+/* Un solo EV_PARO en la cola a la vez: con rebotes o un pin flotando la ISR
+ * puede dispararse miles de veces y llenaría la cola, de modo que eventos
+ * como el fin de la calibración se perderían. */
+static volatile bool s_paro_pendiente;
+
+/* Se ejecuta dentro de la ISR de falla cuando el paro se activa. Debe estar
+ * en IRAM porque corre con la caché de la flash posiblemente deshabilitada. */
 static IRAM_ATTR bool cb_paro_isr(void)
 {
+    /* Ya hay un EV_PARO esperando en la cola: no se agrega otro */
+    if (s_paro_pendiente) {
+        return false;
+    }
+    s_paro_pendiente = true;
     BaseType_t despierta = pdFALSE;
     evento_t ev = { .tipo = EV_PARO, .causa = CAUSA_PARO };
     xQueueSendFromISR(s_cola, &ev, &despierta);
+    /* true le pide a la ISR un cambio de contexto si despertó una tarea */
     return despierta == pdTRUE;
 }
 
+/* La tarea de protección llama aquí cuando una corriente supera su umbral.
+ * Los drivers ya fueron apagados por ella; este evento solo registra la falla. */
 static void cb_disparo(causa_falla_t causa, float pico_a, float f1_hz)
 {
     evento_t ev = { .tipo = EV_SOBRECORRIENTE, .causa = causa, .pico_a = pico_a, .valor = (int32_t)f1_hz };
     xQueueSend(s_cola, &ev, 0);
 }
 
+/* La medición avisa aquí cuando termina la calibración de los sensores. */
 static void cb_calib(bool ok)
 {
     evento_t ev = { .tipo = ok ? EV_CALIB_OK : EV_CALIB_ERROR };
-    xQueueSend(s_cola, &ev, 0);
+    /* Este evento no se puede perder: sin él la interfaz se queda en ARRANQUE */
+    xQueueSend(s_cola, &ev, pdMS_TO_TICKS(200));
 }
 
+/* La interfaz llama aquí cuando se toca un botón. */
 static void cb_ui(const evento_t *ev)
 {
     xQueueSend(s_cola, ev, 0);
 }
 
 /* ----------------------------------- Funciones de hardware para la SM */
+/* La máquina de estados no conoce el hardware: llama a estas funciones, que
+ * solo reenvían a potencia.c. Todas reciben "ctx" por la interfaz de
+ * sm_hw_t, pero aquí no se usa. */
 
 static bool hw_paro(void *ctx) { return potencia_paro_activo(); }
 static bool hw_deshab(void *ctx, canal_t c) { return potencia_canal_deshabilitado(c); }
@@ -79,6 +104,7 @@ static void hw_habilitar(void *ctx, canal_t c) { potencia_habilitar(c); }
 static void hw_fref(void *ctx, uint32_t f) { potencia_fijar_fref(f); }
 static bool hw_recuperar(void *ctx) { return potencia_recuperar_falla(); }
 
+/* Tabla de funciones que se entrega a sm_iniciar() */
 static const sm_hw_t s_hw = {
     .paro_activo = hw_paro,
     .canal_deshabilitado = hw_deshab,
@@ -92,13 +118,21 @@ static const sm_hw_t s_hw = {
 
 /* ----------------------------------------------- Tarea de interfaz */
 
+/* Temporizador de LVGL que corre cada PERIODO_INTERFAZ_MS (50 ms). Como
+ * corre dentro de la tarea de LVGL, puede llamar a LVGL sin protección. */
 static void tarea_interfaz(lv_timer_t *t)
 {
     evento_t ev;
-    estado_t antes = s_sm.estado;
+    estado_t antes = s_sm.estado;   /* para detectar y registrar el cambio de estado */
+
+    /* 1. Vaciar la cola: cada evento pasa por la máquina de estados */
     while (xQueueReceive(s_cola, &ev, 0) == pdTRUE) {
+        if (ev.tipo == EV_PARO) {
+            s_paro_pendiente = false;   /* la ISR ya puede encolar otro paro */
+        }
         sm_evento(&s_sm, &ev, ahora_ms());
     }
+    /* 2. Avance por tiempo: avisos que caducan y la espera de ARMADO */
     sm_tick(&s_sm, ahora_ms());
 
     if (s_sm.estado != antes) {
@@ -112,9 +146,10 @@ static void tarea_interfaz(lv_timer_t *t)
             medicion_calibrar();
         }
     } else {
-        s_calib_pedida = false;
+        s_calib_pedida = false;   /* permite pedirla otra vez en el próximo ARRANQUE */
     }
 
+    /* 3. Reunir los datos y refrescar la pantalla */
     ui_datos_t d = {
         .sm = &s_sm,
         .ahora_ms = ahora_ms(),
@@ -125,6 +160,8 @@ static void tarea_interfaz(lv_timer_t *t)
     ui_actualizar(&d);
 }
 
+/* LVGL la llama una vez, cuando la pantalla está lista: construye las
+ * pantallas y arranca el temporizador de la tarea de interfaz. */
 static void interfaz_lista(void)
 {
     ui_iniciar(cb_ui);
@@ -133,9 +170,11 @@ static void interfaz_lista(void)
 
 /* --------------------------------------------------------- Arranque */
 
-static SemaphoreHandle_t s_listo;
-static esp_err_t s_res_potencia;
+static SemaphoreHandle_t s_listo;   /* avisa que potencia_iniciar() terminó */
+static esp_err_t s_res_potencia;    /* resultado de potencia_iniciar() */
 
+/* Tarea de un solo uso fijada al núcleo 1: así la ISR del MCPWM queda
+ * registrada en ese núcleo. Avisa por el semáforo y se borra. */
 static void tarea_inicio_nucleo1(void *arg)
 {
     s_res_potencia = potencia_iniciar(cb_paro_isr);
@@ -143,6 +182,8 @@ static void tarea_inicio_nucleo1(void *arg)
     vTaskDelete(NULL);
 }
 
+/* Punto de entrada de ESP-IDF. El orden de los pasos importa: primero lo
+ * seguro (drivers apagados), después la potencia, la medición y la pantalla. */
 void app_main(void)
 {
     /* 1. Drivers deshabilitados antes de tocar cualquier otro periférico */

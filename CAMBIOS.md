@@ -10,6 +10,18 @@ Formato de cada entrada: fecha, quién, qué cambió y qué reemplaza.
 
 
 
+
+## 2026-11-06 · Claude · Versión final del firmware para flashear
+
+- `firmware/` queda igual a la copia de VS Code (`C:\proyectos\firmware`), que tenía los cambios del 24 oct.
+  sin subir: fuentes en negrita, rediseño de la interfaz y de la pantalla de falla, comentarios en todos los
+  archivos, CH1 a 10 kHz, corrección del paro flotante en GPIO 7 y del desborde del buffer de texto.
+- Modo final en `config.h`: `SENSORES_BLOQUEAN_INTERFAZ = 1` (una calibración fallida bloquea en ERROR SENSOR y
+  los EN ya se pueden habilitar) y `TACTIL_DEPURAR = 0`.
+- Siguen por verificar en el hardware: polaridad de EN, calibración del táctil, `CH2_MA0` y la rampa V/f.
+
+---
+
 ## 2026-10-23 · Claude · Resumen de la sesión del firmware
 
 - `docs/sesiones/2026-10-23_firmware.md`: outputs, decisiones, verificaciones y pendientes de la sesión, para

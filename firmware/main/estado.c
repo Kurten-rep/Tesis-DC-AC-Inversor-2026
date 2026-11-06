@@ -3,6 +3,9 @@
  * Transiciones:
  *
  *   ARRANQUE --calib ok--> ESPERA        ARRANQUE --calib error--> ERROR_SENSOR
+ *     (con SENSORES_BLOQUEAN_INTERFAZ = 0, calib error --> ESPERA con
+ *      sensores_ok = false: se recorre todo el flujo, pero en ARMADO se
+ *      arranca el MCPWM sin habilitar los drivers)
  *   ERROR_SENSOR --reintentar--> ARRANQUE
  *   ESPERA --canal--> CONFIGURACION --volver--> ESPERA
  *   CONFIGURACION --iniciar (paro liberado)--> ARMADO
@@ -11,25 +14,34 @@
  *   ARMADO/OPERACION --detener--> ESPERA
  *   ARMADO/OPERACION --sobrecorriente o paro--> FALLA
  *   FALLA --reconocer (paro liberado)--> ESPERA
+ *
+ * Este archivo no incluye ninguna cabecera de ESP-IDF: se compila igual en
+ * el PC para las pruebas automáticas.
  */
 #include "estado.h"
 #include "config.h"
 #include <stddef.h>
 
-#define AVISO_MS 2500u
+#define AVISO_MS 2500u   /* tiempo que un aviso permanece en pantalla */
 
+/* Cambia de estado y anota el instante de entrada (lo usa ARMADO para
+ * medir su espera). */
 static void entrar(sm_t *sm, estado_t e, uint32_t ahora_ms)
 {
     sm->estado = e;
     sm->t_entrada_ms = ahora_ms;
 }
 
+/* Publica un mensaje corto que la interfaz muestra y sm_tick() borra a
+ * los AVISO_MS. El texto debe ser una cadena constante (no se copia). */
 static void avisar(sm_t *sm, const char *txt, uint32_t ahora_ms)
 {
     sm->aviso = txt;
     sm->t_aviso_ms = ahora_ms;
 }
 
+/* Registra una falla: apaga todo, guarda causa, canal, pico y frecuencia
+ * para mostrarlos en pantalla y pasa a EST_FALLA. */
 static void ir_a_falla(sm_t *sm, causa_falla_t causa, float pico, int32_t f1, uint32_t ahora_ms)
 {
     sm->hw->apagar_todo(sm->hw->ctx);
@@ -40,6 +52,7 @@ static void ir_a_falla(sm_t *sm, causa_falla_t causa, float pico, int32_t f1, ui
     entrar(sm, EST_FALLA, ahora_ms);
 }
 
+/* Recorta la frecuencia pedida al rango permitido del Canal 2. */
 uint32_t sm_limitar_fref(int32_t f_hz)
 {
     if (f_hz < (int32_t)CH2_F1_MIN_HZ) {
@@ -51,6 +64,8 @@ uint32_t sm_limitar_fref(int32_t f_hz)
     return (uint32_t)f_hz;
 }
 
+/* Valores iniciales. Los drivers se apagan desde el primer instante y la
+ * máquina queda en ARRANQUE a la espera del resultado de la calibración. */
 void sm_iniciar(sm_t *sm, const sm_hw_t *hw, uint32_t ahora_ms)
 {
     sm->hw = hw;
@@ -61,12 +76,15 @@ void sm_iniciar(sm_t *sm, const sm_hw_t *hw, uint32_t ahora_ms)
     sm->canal_falla = CANAL_NINGUNO;
     sm->pico_a = 0.0f;
     sm->f1_falla_hz = 0;
+    sm->sensores_ok = false;
     sm->aviso = NULL;
     sm->t_aviso_ms = 0;
     hw->apagar_todo(hw->ctx);
     entrar(sm, EST_ARRANQUE, ahora_ms);
 }
 
+/* Procesa un evento según el estado actual. Los eventos que no
+ * corresponden al estado se ignoran. */
 void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
 {
     const sm_hw_t *hw = sm->hw;
@@ -83,20 +101,33 @@ void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
     }
 
     switch (sm->estado) {
+    /* ARRANQUE: solo interesa el resultado de la calibración */
     case EST_ARRANQUE:
         if (ev->tipo == EV_CALIB_OK) {
+            sm->sensores_ok = true;
             entrar(sm, EST_ESPERA, ahora_ms);
         } else if (ev->tipo == EV_CALIB_ERROR) {
+            sm->sensores_ok = false;
+#if SENSORES_BLOQUEAN_INTERFAZ
+            /* Comportamiento final: la interfaz queda bloqueada */
             entrar(sm, EST_ERROR_SENSOR, ahora_ms);
+#else
+            /* Modo de pruebas: se sigue a ESPERA pero con los drivers
+             * bloqueados (sensores_ok = false) */
+            avisar(sm, "Sensores fuera de rango: drivers bloqueados", ahora_ms);
+            entrar(sm, EST_ESPERA, ahora_ms);
+#endif
         }
         break;
 
+    /* ERROR_SENSOR: la única salida es reintentar la calibración */
     case EST_ERROR_SENSOR:
         if (ev->tipo == EV_REINTENTAR) {
             entrar(sm, EST_ARRANQUE, ahora_ms);
         }
         break;
 
+    /* ESPERA: menú de selección de canal; se acepta solo el canal 1 o 2 */
     case EST_ESPERA:
         if (ev->tipo == EV_SELECCIONAR_CANAL &&
             (ev->valor == CANAL_1 || ev->valor == CANAL_2)) {
@@ -106,6 +137,7 @@ void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
         }
         break;
 
+    /* CONFIGURACION: ajuste de parámetros y botón INICIAR */
     case EST_CONFIGURACION:
         switch (ev->tipo) {
         case EV_VOLVER:
@@ -113,16 +145,19 @@ void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
             entrar(sm, EST_ESPERA, ahora_ms);
             break;
         case EV_AJUSTAR_FREF:
+            /* Solo el Canal 2 tiene frecuencia ajustable */
             if (sm->par.canal == CANAL_2) {
                 sm->par.f_ref_hz = sm_limitar_fref((int32_t)sm->par.f_ref_hz + ev->valor);
             }
             break;
         case EV_SELECCIONAR_FSW:
+            /* Solo se aceptan las dos bases permitidas: 10 kHz o 20 kHz */
             if (sm->par.canal == CANAL_2 && (ev->valor == 10000 || ev->valor == 20000)) {
                 sm->par.fsw_base_hz = (uint32_t)ev->valor;
             }
             break;
         case EV_INICIAR:
+            /* No se arma con el paro presionado */
             if (hw->paro_activo(hw->ctx)) {
                 avisar(sm, "Libere el paro de emergencia", ahora_ms);
             } else {
@@ -135,6 +170,7 @@ void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
         }
         break;
 
+    /* ARMADO: la espera la avanza sm_tick(); aquí solo se acepta DETENER */
     case EST_ARMADO:
         if (ev->tipo == EV_DETENER) {
             hw->apagar_todo(hw->ctx);
@@ -143,6 +179,7 @@ void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
         }
         break;
 
+    /* OPERACION: se puede detener o, en el Canal 2, cambiar la frecuencia */
     case EST_OPERACION:
         if (ev->tipo == EV_DETENER) {
             hw->apagar_todo(hw->ctx);
@@ -154,6 +191,8 @@ void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
         }
         break;
 
+    /* FALLA: se sale solo al reconocer, con el paro liberado y el freno
+     * de falla recuperado */
     case EST_FALLA:
         if (ev->tipo == EV_RECONOCER) {
             if (hw->paro_activo(hw->ctx)) {
@@ -173,14 +212,17 @@ void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
     }
 }
 
+/* Avance por tiempo. Se llama cada 50 ms desde la tarea de interfaz. */
 void sm_tick(sm_t *sm, uint32_t ahora_ms)
 {
     const sm_hw_t *hw = sm->hw;
 
+    /* Los avisos caducan a los AVISO_MS */
     if (sm->aviso != NULL && (ahora_ms - sm->t_aviso_ms) > AVISO_MS) {
         sm->aviso = NULL;
     }
 
+    /* Lo que sigue solo aplica a la espera de ARMADO */
     if (sm->estado != EST_ARMADO) {
         return;
     }
@@ -196,17 +238,25 @@ void sm_tick(sm_t *sm, uint32_t ahora_ms)
         ir_a_falla(sm, CAUSA_PARO, 0.0f, 0, ahora_ms);
         return;
     }
+    /* Todavía no pasaron los 500 ms de espera con las compuertas apagadas */
     if ((ahora_ms - sm->t_entrada_ms) < ARMADO_ESPERA_MS) {
         return;
     }
+    /* Terminó la espera: arrancar el MCPWM con ma = 0 */
     if (!hw->arrancar(hw->ctx, sm->par.canal, &sm->par)) {
         ir_a_falla(sm, CAUSA_ERROR_INTERNO, 0.0f, 0, ahora_ms);
         return;
     }
-    hw->habilitar(hw->ctx, sm->par.canal);
+    if (sm->sensores_ok) {
+        hw->habilitar(hw->ctx, sm->par.canal);
+    } else {
+        /* Modo de pruebas: el MCPWM corre (se ve en HIN/LIN), EN sigue inactivo */
+        avisar(sm, "Prueba MCU: drivers deshabilitados", ahora_ms);
+    }
     entrar(sm, EST_OPERACION, ahora_ms);
 }
 
+/* Nombre del estado en mayúsculas, para la barra superior y el log. */
 const char *sm_nombre_estado(estado_t e)
 {
     static const char *const nombres[EST_NUM] = {
@@ -216,6 +266,7 @@ const char *sm_nombre_estado(estado_t e)
     return (e < EST_NUM) ? nombres[e] : "?";
 }
 
+/* Texto de la causa para la pantalla de falla. */
 const char *sm_texto_causa(causa_falla_t c)
 {
     switch (c) {
