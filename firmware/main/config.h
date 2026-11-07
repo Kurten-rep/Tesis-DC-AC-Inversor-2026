@@ -83,6 +83,24 @@
  * Volver a 1 antes de conectar la etapa de potencia. */
 #define SENSORES_BLOQUEAN_INTERFAZ  1
 
+/* -------------------------------------------- Protecciones desactivables */
+/* [PRUEBAS] Paro de emergencia en GPIO 7.
+ *   1 = el pin frena el MCPWM por hardware y lleva el equipo a FALLA.
+ *   0 = no se usa: GPIO 7 no se configura, no frena nada y la interfaz
+ *       muestra "SIN PARO" en la barra superior. */
+#ifndef USAR_PARO_EMERGENCIA
+#define USAR_PARO_EMERGENCIA        0
+#endif
+
+/* [PRUEBAS] Protección por sobrecorriente con los ACS712.
+ *   1 = una corriente sobre CH1_UMBRAL_A o CH2_UMBRAL_A frena el canal.
+ *   0 = no se compara contra los umbrales; los sensores solo sirven para
+ *       mostrar la corriente. Una calibración fallida tampoco bloquea:
+ *       se avisa en pantalla y los drivers se habilitan igual. */
+#ifndef USAR_PROTECCION_SOBRECORRIENTE
+#define USAR_PROTECCION_SOBRECORRIENTE  0
+#endif
+
 /* ----------------------------------------------------------- Pantalla */
 #define LCD_H_RES               320        /* resolución horizontal, en píxeles */
 #define LCD_V_RES               240        /* resolución vertical, en píxeles */

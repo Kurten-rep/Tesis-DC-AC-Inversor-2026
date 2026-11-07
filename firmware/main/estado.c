@@ -108,13 +108,17 @@ void sm_evento(sm_t *sm, const evento_t *ev, uint32_t ahora_ms)
             entrar(sm, EST_ESPERA, ahora_ms);
         } else if (ev->tipo == EV_CALIB_ERROR) {
             sm->sensores_ok = false;
-#if SENSORES_BLOQUEAN_INTERFAZ
+#if SENSORES_BLOQUEAN_INTERFAZ && USAR_PROTECCION_SOBRECORRIENTE
             /* Comportamiento final: la interfaz queda bloqueada */
             entrar(sm, EST_ERROR_SENSOR, ahora_ms);
 #else
             /* Modo de pruebas: se sigue a ESPERA pero con los drivers
              * bloqueados (sensores_ok = false) */
+#if USAR_PROTECCION_SOBRECORRIENTE
             avisar(sm, "Sensores fuera de rango: drivers bloqueados", ahora_ms);
+#else
+            avisar(sm, "Sensores fuera de rango: sin medición", ahora_ms);
+#endif
             entrar(sm, EST_ESPERA, ahora_ms);
 #endif
         }
@@ -247,7 +251,8 @@ void sm_tick(sm_t *sm, uint32_t ahora_ms)
         ir_a_falla(sm, CAUSA_ERROR_INTERNO, 0.0f, 0, ahora_ms);
         return;
     }
-    if (sm->sensores_ok) {
+    /* Sin protección por sobrecorriente los sensores no condicionan EN */
+    if (sm->sensores_ok || !USAR_PROTECCION_SOBRECORRIENTE) {
         hw->habilitar(hw->ctx, sm->par.canal);
     } else {
         /* Modo de pruebas: el MCPWM corre (se ve en HIN/LIN), EN sigue inactivo */

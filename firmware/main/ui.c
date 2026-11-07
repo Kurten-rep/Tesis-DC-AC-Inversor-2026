@@ -599,7 +599,8 @@ static void crear_armado(void)
     s_arm.titulo = etiqueta(c, F16, C_TEXTO, "");
     lv_obj_t *ico_inactivo;   /* el ícono de esta fila no se actualiza, por eso no se guarda */
     fila_chequeo(c, "", &ico_inactivo, &s_arm.txt_inactivo);
-    fila_chequeo(c, "Paro de emergencia liberado", &s_arm.ico_paro, NULL);
+    fila_chequeo(c, USAR_PARO_EMERGENCIA ? "Paro de emergencia liberado" : "Paro de emergencia desactivado",
+                 &s_arm.ico_paro, NULL);
     fila_chequeo(c, "Compuertas apagadas 500 ms", &s_arm.ico_tiempo, NULL);
     relleno(c);
     s_arm.progreso = barra_progreso(c, 10, C_AMBAR);
@@ -851,6 +852,11 @@ static void actualizar_barra(pantalla_t p, const ui_datos_t *d)
     } else {
         texto(b->paro, d->paro ? "PARO ACTIVO" : "PARO OK");
     }
+#if !USAR_PARO_EMERGENCIA
+    /* Paro desactivado en config.h: se avisa en ámbar */
+    c_paro = C_AMBAR;
+    texto(b->paro, "SIN PARO");
+#endif
     lv_obj_set_style_text_color(b->paro, lv_color_hex(c_paro), 0);
     lv_obj_set_style_bg_color(b->punto, lv_color_hex(c_paro), 0);
 }

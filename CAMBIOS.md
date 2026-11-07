@@ -11,6 +11,22 @@ Formato de cada entrada: fecha, quién, qué cambió y qué reemplaza.
 
 
 
+
+## 2026-11-07 · Claude · Paro de emergencia y protección por sobrecorriente desactivables
+
+- `config.h`: dos interruptores nuevos, `USAR_PARO_EMERGENCIA` y `USAR_PROTECCION_SOBRECORRIENTE`.
+  **Quedan en 0**: el equipo opera sin paro y sin disparo por sobrecorriente.
+- Paro en 0 (`potencia.c`, `ui.c`): GPIO 7 no se configura como falla del MCPWM, no hay ISR ni freno por ese pin
+  y la barra superior muestra "SIN PARO" en ámbar.
+- Sobrecorriente en 0 (`medicion.c`, `estado.c`): no se compara contra los umbrales; los ACS712 solo miden.
+  Una calibración fallida no bloquea en ERROR SENSOR y EN se habilita igual.
+- El freno por software se conserva: DETENER y el apagado normal siguen llevando HIN y LIN a bajo.
+- `test_estado.c`: caso nuevo para el modo sin protecciones (41 comprobaciones). Con los dos en 1 el
+  comportamiento es el anterior (37 comprobaciones).
+- Para volver al modo final: los dos interruptores en 1.
+
+---
+
 ## 2026-11-06 · Claude · Versión final del firmware para flashear
 
 - `firmware/` queda igual a la copia de VS Code (`C:\proyectos\firmware`), que tenía los cambios del 24 oct.

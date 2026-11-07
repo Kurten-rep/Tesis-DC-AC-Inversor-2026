@@ -166,6 +166,9 @@ static void tarea_proteccion(void *arg)
                  * habilitan en ese caso (estado.c) */
                 activo = CANAL_NINGUNO;
             }
+#if !USAR_PROTECCION_SOBRECORRIENTE
+            (void)activo;   /* sin protección no se compara contra los umbrales */
+#endif
 
             /* Cada conversión ocupa SOC_ADC_DIGI_RESULT_BYTES bytes */
             for (uint32_t k = 0; k + SOC_ADC_DIGI_RESULT_BYTES <= leidos; k += SOC_ADC_DIGI_RESULT_BYTES) {
@@ -196,6 +199,7 @@ static void tarea_proteccion(void *arg)
                 if (s == SENSOR_U) { iu = i; hay_u = true; }
                 if (s == SENSOR_V) { iv = i; hay_v = true; }
 
+#if USAR_PROTECCION_SOBRECORRIENTE
                 /* Protección del Canal 1: el pico instantáneo contra el umbral */
                 if (activo == CANAL_1 && s == SENSOR_CH1 && fabsf(i) > CH1_UMBRAL_A) {
                     potencia_disparo();
@@ -212,6 +216,7 @@ static void tarea_proteccion(void *arg)
                         activo = CANAL_NINGUNO;
                     }
                 }
+#endif
                 /* Con una muestra nueva de U y de V se calcula W y se
                  * protege también esa fase */
                 if (hay_u && hay_v) {
@@ -219,6 +224,7 @@ static void tarea_proteccion(void *arg)
                     hay_u = hay_v = false;
                     suma2[3] += iw * iw;
                     n[3]++;
+#if USAR_PROTECCION_SOBRECORRIENTE
                     if (activo == CANAL_2 && fabsf(iw) > CH2_UMBRAL_A) {
                         float f1 = potencia_f1_actual();
                         potencia_disparo();
@@ -226,6 +232,7 @@ static void tarea_proteccion(void *arg)
                         s_cb_disparo(CAUSA_SOBRECORRIENTE_W, iw, f1);
                         activo = CANAL_NINGUNO;
                     }
+#endif
                 }
             }
         }

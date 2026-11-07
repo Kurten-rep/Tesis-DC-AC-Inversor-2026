@@ -112,7 +112,11 @@ void potencia_pines_seguros(void)
 /* El paro está activo con el pin en alto (NC abierto o cable cortado). */
 bool potencia_paro_activo(void)
 {
+#if USAR_PARO_EMERGENCIA
     return gpio_get_level(PIN_PARO) == 1;
+#else
+    return false;   /* paro desactivado en config.h */
+#endif
 }
 
 /* true si el EN del canal está en nivel inactivo. Se lee el nivel real del
@@ -162,6 +166,7 @@ static IRAM_ATTR bool isr_ch2(mcpwm_timer_handle_t t, const mcpwm_timer_event_da
     return false;
 }
 
+#if USAR_PARO_EMERGENCIA
 /* ISR del paro de emergencia (flanco de entrada a la falla). */
 static IRAM_ATTR bool isr_paro(mcpwm_fault_handle_t f, const mcpwm_fault_event_data_t *ed, void *ctx)
 {
@@ -170,6 +175,7 @@ static IRAM_ATTR bool isr_paro(mcpwm_fault_handle_t f, const mcpwm_fault_event_d
     s_activo = CANAL_NINGUNO;
     return s_cb_paro ? s_cb_paro() : false;
 }
+#endif
 
 /* Publica una referencia nueva para la ISR del grupo g: escribe en el
  * buffer libre y después cambia el índice. */
@@ -215,6 +221,7 @@ static esp_err_t crear_grupo(int g, int n_ramas, const int *pin_h, const int *pi
     };
     ESP_RETURN_ON_ERROR(mcpwm_new_timer(&tcfg, &gr->timer), TAG, "timer %d", g);
 
+#if USAR_PARO_EMERGENCIA
     /* Entrada de falla por GPIO: el pin de paro */
     mcpwm_gpio_fault_config_t fcfg = {
         .group_id = g,
@@ -226,6 +233,7 @@ static esp_err_t crear_grupo(int g, int n_ramas, const int *pin_h, const int *pi
         .flags.pull_up = true,
     };
     ESP_RETURN_ON_ERROR(mcpwm_new_gpio_fault(&fcfg, &gr->f_paro), TAG, "falla gpio %d", g);
+#endif
 
     for (int k = 0; k < n_ramas; k++) {
         /* Operador de la rama k, conectado al temporizador del grupo */
@@ -264,9 +272,11 @@ static esp_err_t crear_grupo(int g, int n_ramas, const int *pin_h, const int *pi
         ESP_RETURN_ON_ERROR(mcpwm_generator_set_dead_time(gr->gen_h[k], gr->gen_l[k], &dl), TAG, "tm l");
 
         /* Freno: las dos fallas, de una sola vez, salidas en bajo */
+#if USAR_PARO_EMERGENCIA
         mcpwm_brake_config_t b1 = { .fault = gr->f_paro, .brake_mode = MCPWM_OPER_BRAKE_MODE_OST };
-        mcpwm_brake_config_t b2 = { .fault = gr->f_soft[k], .brake_mode = MCPWM_OPER_BRAKE_MODE_OST };
         ESP_RETURN_ON_ERROR(mcpwm_operator_set_brake_on_fault(gr->oper[k], &b1), TAG, "freno");
+#endif
+        mcpwm_brake_config_t b2 = { .fault = gr->f_soft[k], .brake_mode = MCPWM_OPER_BRAKE_MODE_OST };
         ESP_RETURN_ON_ERROR(mcpwm_operator_set_brake_on_fault(gr->oper[k], &b2), TAG, "freno");
         /* Acción del freno sobre HIN y LIN: nivel bajo, con el contador
          * subiendo o bajando */
@@ -386,9 +396,13 @@ esp_err_t potencia_iniciar(potencia_cb_paro_t cb_paro)
     ESP_RETURN_ON_ERROR(crear_grupo(G_CH1, 2, h1, l1, TM_CH1_CUENTAS, pico1, isr_ch1), TAG, "CH1");
     ESP_RETURN_ON_ERROR(crear_grupo(G_CH2, 3, h2, l2, TM_CH2_CUENTAS, pico2, isr_ch2), TAG, "CH2");
 
+#if USAR_PARO_EMERGENCIA
     /* Un solo aviso de paro basta: el GPIO 7 frena los dos grupos */
     mcpwm_fault_event_callbacks_t fcb = { .on_fault_enter = isr_paro };
     ESP_RETURN_ON_ERROR(mcpwm_fault_register_event_callbacks(s_g[G_CH1].f_paro, &fcb, NULL), TAG, "cb paro");
+#else
+    ESP_LOGW(TAG, "Paro de emergencia DESACTIVADO (USAR_PARO_EMERGENCIA = 0)");
+#endif
 
     /* Tarea de rampa en el núcleo 1, junto a las ISR */
     BaseType_t ok = xTaskCreatePinnedToCore(tarea_rampa, "rampa", 4096, NULL,
@@ -469,7 +483,10 @@ bool potencia_arrancar(canal_t c, uint32_t f_ref_hz, uint32_t fsw_base_hz)
 
     /* Se libera el freno de cada rama; si falla, se deja todo apagado */
     for (int k = 0; k < gr->n_ramas; k++) {
-        if (mcpwm_operator_recover_from_fault(gr->oper[k], gr->f_paro) != ESP_OK ||
+        if (
+#if USAR_PARO_EMERGENCIA
+            mcpwm_operator_recover_from_fault(gr->oper[k], gr->f_paro) != ESP_OK ||
+#endif
             mcpwm_operator_recover_from_fault(gr->oper[k], gr->f_soft[k]) != ESP_OK) {
             ESP_LOGE(TAG, "no se pudo liberar el freno del grupo %d", g);
             potencia_apagar_todo();

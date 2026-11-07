@@ -129,6 +129,8 @@ correr `lv_font_conv`.
 | Constante | Efecto |
 |---|---|
 | `SENSORES_BLOQUEAN_INTERFAZ` | 1: una calibración fallida bloquea la interfaz en ERROR SENSOR (comportamiento final). 0: la interfaz sigue y los drivers nunca se habilitan (pruebas del MCU). Volver a 1 antes de conectar la etapa de potencia. |
+| `USAR_PARO_EMERGENCIA` | 1: GPIO 7 frena el MCPWM por hardware y lleva a FALLA. 0: el paro no se usa y la barra superior muestra "SIN PARO". |
+| `USAR_PROTECCION_SOBRECORRIENTE` | 1: los ACS712 disparan el freno al superar `CH1_UMBRAL_A` o `CH2_UMBRAL_A`. 0: solo miden; una calibración fallida no bloquea y EN se habilita igual. |
 | `MODO_BANCO` | 1: compila el reporte por consola de `banco.c`. Se activa desde la línea de comandos. |
 | `LCD_PERFIL` | Perfil de potencia, VCOM y gamma de la pantalla (1, 2, 3, 5 o 6). Cambia la saturación aparente de los colores. |
 | `LCD_INTERCAMBIAR_XY`, `LCD_ESPEJO_X`, `LCD_ESPEJO_Y`, `LCD_ORDEN_BGR` | Orientación y orden de color de la pantalla. |
