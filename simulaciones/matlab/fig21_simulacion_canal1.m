@@ -1,10 +1,10 @@
-% Figura 21. Simulación del Canal 1: SPWM unipolar a 20 kHz, filtro LC y carga resistiva.
+% Figura 21. Simulación del Canal 1: SPWM unipolar a 10 kHz, filtro LC y carga resistiva.
 % Modelo de interruptores ideales. Con td > 0 se incluye el tiempo muerto: durante td
 % la rama queda abierta y su voltaje lo fija el diodo que conduce según el signo de la corriente.
 % (a) ciclo completo con el promedio por periodo de conmutación, (b) detalle de 0,5 ms
 % cerca del pico, (c) voltaje de salida y corriente en la inductancia.
 clear; close all;
-Vdc = 200; ma = 0.88; f1 = 60; fsw = 20e3;   % ma = 0,88 compensa la caída por tiempo muerto
+Vdc = 200; ma = 0.88; f1 = 60; fsw = 10e3;   % ma = 0,88 compensa la caída por tiempo muerto
 L = 1.15e-3; C = 6.8e-6; R = 22.5;        % carga de 640 VA a 120 VRMS
 td = 800e-9;                              % tiempo muerto (poner 0 para el caso ideal)
 dt = 1 / f1 / 400000;                     % 400 000 muestras exactas por ciclo

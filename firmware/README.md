@@ -39,7 +39,7 @@ con la versión actual:
 
 | Caso | Fundamental | Esperado |
 |---|---|---|
-| CH1, ma = 0,88, 200 V, 10 kHz | 124,4 VRMS (≈ 121,6 VRMS con la caída por tiempo muerto) | 124,5 VRMS ideal. Los 118,9 VRMS de la simulación del documento son con 20 kHz |
+| CH1, ma = 0,88, 200 V, 10 kHz | 124,4 VRMS (≈ 121,6 VRMS con la caída por tiempo muerto) | 124,5 VRMS ideal. La simulación del documento (Figura 19) da 121,7 VRMS a 10 kHz |
 | CH2, 300 Hz, 12 V | 2,99 V pico de línea | 2,99 V |
 | CH2, 600 Hz, 12 V | 5,46 V pico de línea | 5,46 V |
 | CH2, 1200 Hz, 12 V | 10,19 V pico de línea | 10,39 V (el límite de 95 % del bootstrap recorta 2 %) |

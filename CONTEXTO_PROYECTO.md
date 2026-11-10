@@ -41,11 +41,11 @@ Los canales son **mutuamente excluyentes**. Los negativos de las dos fuentes de 
 |---|---|
 | Fuente | 200 VDC, 40 W máximo, bus exclusivo de CH1 |
 | Diseño nominal | 640 VA (sustentado con cálculo y simulación) |
-| Salida | 120 VRMS, 60 Hz, índice de modulación ≈ 0.85 |
+| Salida | 120 VRMS, 60 Hz, índice de modulación 0.88 |
 | Topología | Puente H, SPWM unipolar |
 | Conmutadores | 4x IRFP360 (TO-247) |
-| Conmutación | 20 kHz |
-| Filtro | LC, Cf = 6.8 µF, Lf ≈ 1.15 mH (en revisión, ver pendientes) |
+| Conmutación | 10 kHz |
+| Filtro | LC, Cf = 6.8 µF, Lf ≈ 1.15 mH. Solo diseño teórico: no se montó en el equipo, lo arma el estudiante en las prácticas |
 | DC-link | 470 µF / 400 V + 1.0 µF polipropileno + purga 100 kΩ / 2 W |
 | Objetivo de THD | 10 % |
 

@@ -22,8 +22,8 @@ Solo un canal funciona a la vez.
 |---|---|---|
 | Tipo | Monofásico, puente H | Trifásico, puente de dos niveles |
 | Entrada | 200 VDC, máximo 40 W (fuente externa) | 12 VDC a 24 VDC (PeakTech 6145) |
-| Salida | 120 VRMS, 60 Hz, con filtro LC | Trifásica de 10 Hz a 1200 Hz, sin filtro |
-| Modulación | SPWM unipolar, 20 kHz | SPWM con ley V/f en lazo abierto, 10 kHz o 20 kHz de base, hasta 25,2 kHz |
+| Salida | SPWM de 60 Hz sin filtro; 120 VRMS con el filtro LC que arma el estudiante | Trifásica de 10 Hz a 1200 Hz, sin filtro |
+| Modulación | SPWM unipolar, 10 kHz | SPWM con ley V/f en lazo abierto, 10 kHz o 20 kHz de base, hasta 25,2 kHz |
 | Carga prevista | Carga resistiva o RL hasta 40 W | Motor A2212/13T 1000KV (14 polos), cargas RL |
 | Corte por sobrecorriente | ±2 A | ±15 A por fase |
 
@@ -77,7 +77,7 @@ Pantalla de 320 × 240 píxeles. Diseño de referencia en el lienzo "Interfaz TF
 | Arranque | "Calibrando sensores a 0 A…" con barra de progreso | Nada; dura unos 0,2 s |
 | Error de sensor | Voltaje medido de cada sensor a 0 A, OK o FUERA | Reintentar |
 | Espera | Dos tarjetas: Canal 1 y Canal 2 | Tocar un canal |
-| Configuración Canal 1 | Parámetros fijos: 120 V, 60 Hz, ma 0,88, rampa de 1 s, 20 kHz, ±2 A | Volver o INICIAR |
+| Configuración Canal 1 | Parámetros fijos: 120 V, 60 Hz, ma 0,88, rampa de 1 s, 10 kHz, ±2 A | Volver o INICIAR |
 | Configuración Canal 2 | Frecuencia de referencia (rpm y ma aproximados), botones −100, −10, +10, +100 Hz, conmutación base 10 kHz o 20 kHz | Ajustar, Volver o INICIAR |
 | Armado | Verificaciones (canal inactivo apagado, paro liberado, 500 ms con compuertas apagadas) y barra de tiempo | Nada; dura 0,5 s |
 | Operación Canal 1 | Corriente de salida RMS, f1, fsw, ma, barra de la rampa | DETENER |
@@ -148,7 +148,7 @@ etiqueta de la sonda admita el voltaje en ×10.
 ### 6.3 Canal 1
 - Forma de onda: sonda 1 en la salida de la rama A (después del inductor), sonda 2 en la rama B,
   las dos contra el negativo del bus, y resta. 50 V/div con sonda ×10. Unos 170 V pico a 60 Hz.
-- Limitación: las dos ramas conmutan 0 a 200 V a 20 kHz. Si las sondas no son idénticas, la resta
+- Limitación: las dos ramas conmutan 0 a 200 V a 10 kHz. Si las sondas no son idénticas, la resta
   deja picos residuales que la FFT muestra como armónicos que no existen. Para el THD conviene
   una sonda diferencial de alto voltaje. **[PENDIENTE] Definir cómo se mide el THD del Canal 1.**
 

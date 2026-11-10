@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Figura 21. Simulación del Canal 1: SPWM unipolar a 20 kHz, filtro LC y carga resistiva.
+"""Figura 21. Simulación del Canal 1: SPWM unipolar a 10 kHz, filtro LC y carga resistiva.
 
 Modelo de interruptores ideales con tiempo muerto: durante td la rama queda abierta y su
 voltaje lo fija el diodo que conduce según el signo de la corriente en la inductancia.
@@ -24,7 +24,7 @@ coma = FuncFormatter(lambda v, p: ('%g' % v).replace('.', ','))
 AZUL, ROJO, GRIS = '#1f5fa8', '#c0392b', '#555555'
 
 # Parámetros (valores nominales de diseño)
-Vdc_V, ma, f1_Hz, fsw_Hz = 200.0, 0.85, 60.0, 20e3
+Vdc_V, ma, f1_Hz, fsw_Hz = 200.0, 0.88, 60.0, 10e3
 L_H, C_F, R_ohm = 1.15e-3, 6.8e-6, 22.5     # carga de 640 VA a 120 VRMS
 td_s = 800e-9                               # tiempo muerto (0 para el caso ideal)
 dt_s = 1.0 / f1_Hz / 400000                 # 400 000 muestras exactas por ciclo (fs = 24 MHz)

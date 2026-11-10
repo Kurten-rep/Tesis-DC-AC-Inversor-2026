@@ -12,6 +12,17 @@ Formato de cada entrada: fecha, quién, qué cambió y qué reemplaza.
 
 
 
+## 2026-11-09 · Claude · Canal 1 a 10 kHz en todo el proyecto y filtro LC solo teórico
+
+- El documento de grado quedó con el Canal 1 a 10 kHz (antes 20 kHz en el diseño y las simulaciones). Simulación
+  con ma = 0,88: 121,7 VRMS y THD 1,2 % con la carga de diseño; 124,2 VRMS y THD 1,1 % con la de 40 W.
+- El filtro LC del Canal 1 no se montó en el equipo: queda como diseño teórico que arma el estudiante.
+- `CONTEXTO_PROYECTO.md`, `docs/CONTEXTO_MANUAL_USUARIO.md`, `firmware/README.md` y los scripts de la Figura 19
+  (Python y MATLAB) pasan a 10 kHz.
+- El manual de usuario quedó redactado como Anexo A del documento de grado.
+
+---
+
 ## 2026-11-07 · Claude · Paro de emergencia y protección por sobrecorriente desactivables
 
 - `config.h`: dos interruptores nuevos, `USAR_PARO_EMERGENCIA` y `USAR_PROTECCION_SOBRECORRIENTE`.
